@@ -79,23 +79,34 @@ static struct mapinfo nontrivial_free(struct meta *g, int i)
 	uint32_t self = 1u<<i;
 	int sc = g->sizeclass;
 	uint32_t mask = g->freed_mask | g->avail_mask;
+	fprintf(stderr, "--- Nontrivial free of g=%p ---\n", g);
+	fprintf(stderr, "--- self: 0x%x. ---\n", self);
+	fprintf(stderr, "--- sc: 0x%x. ---\n", sc);
+	fprintf(stderr, "--- mask: 0x%x. ---\n", mask);
+	frpitnf(stderr, "--- ok to free?: 0x%x. \n", okay_to_free(g));
 
 	if (mask+self == (2u<<g->last_idx)-1 && okay_to_free(g)) {
+		fprintf(stderr, "--- Nontrivial free case 1. Freeing group. ---\n");
 		// any multi-slot group is necessarily on an active list
 		// here, but single-slot groups might or might not be.
 		if (g->next) {
+			fprintf(stderr, "--- g->next is not NULL. Activating size class and group 0x%lx. ---\n", sc);
 			assert(sc < 48);
 			int activate_new = (ctx.active[sc]==g);
 			dequeue(&ctx.active[sc], g);
 			if (activate_new && ctx.active[sc])
 				activate_group(ctx.active[sc]);
+		} else {
+			fprintf(stderr, "--- g->next IS NULL. Not activating size class and group. ---\n");
 		}
 		return free_group(g);
 	} else if (!mask) {
+		fprintf(stderr, "--- Nontrivial free case 2. ---\n");
 		assert(sc < 48);
 		// might still be active if there were no allocations
 		// after last available slot was taken.
 		if (ctx.active[sc] != g) {
+			fprintf(stderr, "--- Queuing g to active size class 0x%lx. ---\n", sc);
 			queue(&ctx.active[sc], g);
 		}
 	}
@@ -110,7 +121,7 @@ void free(void *p)
 		return;
 	}
 
-	fprintf(stderr, "--- Free requested of pointer %p\n ---\n");
+	fprintf(stderr, "--- Free requested of pointer %p\n ---\n", p);
 	fprintf(stderr, "--- Current heap layout is:\n");
 	dump_heap(stderr);
 
@@ -135,6 +146,7 @@ void free(void *p)
 			int e = errno;
 			madvise(base, len, MADV_FREE);
 			errno = e;
+			fprintf(stderr, "--- Free error occurred. Errno 0x%x. ---\n", e);
 		}
 	}
 
@@ -159,6 +171,7 @@ void free(void *p)
 	unlock();
 	if (mi.len) {
 		int e = errno;
+		fprintf(stderr, "--- Free error occurred. Errno 0x%x. ---\n", e);
 		munmap(mi.base, mi.len);
 		errno = e;
 	}
