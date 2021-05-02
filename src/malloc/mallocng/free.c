@@ -83,7 +83,7 @@ static struct mapinfo nontrivial_free(struct meta *g, int i)
 	fprintf(stderr, "--- self: 0x%x. ---\n", self);
 	fprintf(stderr, "--- sc: 0x%x. ---\n", sc);
 	fprintf(stderr, "--- mask: 0x%x. ---\n", mask);
-	frpitnf(stderr, "--- ok to free?: 0x%x. \n", okay_to_free(g));
+	fprintf(stderr, "--- ok to free?: 0x%x. \n", okay_to_free(g));
 
 	if (mask+self == (2u<<g->last_idx)-1 && okay_to_free(g)) {
 		fprintf(stderr, "--- Nontrivial free case 1. Freeing group. ---\n");
