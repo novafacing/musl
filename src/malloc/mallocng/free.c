@@ -1,6 +1,7 @@
 #define _BSD_SOURCE
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <stdio.h>
 
 #include "meta.h"
 
@@ -39,7 +40,10 @@ static int okay_to_free(struct meta *g)
 {
 	int sc = g->sizeclass;
 
-	if (!g->freeable) return 0;
+	if (!g->freeable) {
+		fprintf(stderr, "*** Chunk non freeable: freeable == 0! ***\n");
+		return 0;
+	}
 
 	// always free individual mmaps not suitable for reuse
 	if (sc >= 48 || get_stride(g) < UNIT*size_classes[sc])
@@ -66,6 +70,7 @@ static int okay_to_free(struct meta *g)
 		return 1;
 
 	// otherwise, keep the last group in a bouncing class.
+	fprintf(stderr, "*** Chunk non freeable: keeping last group in a bouncing class! ***\n");
 	return 0;
 }
 
@@ -100,7 +105,14 @@ static struct mapinfo nontrivial_free(struct meta *g, int i)
 
 void free(void *p)
 {
-	if (!p) return;
+	if (!p) {
+		fprintf(stderr, "*** Chunk non freeable: chunk pointer is NULL ***\n");
+		return;
+	}
+
+	fprintf(stderr, "--- Free requested of pointer %p\n ---\n");
+	fprintf(stderr, "--- Current heap layout is:\n");
+	dump_heap(stderr);
 
 	struct meta *g = get_meta(p);
 	int idx = get_slot_index(p);
@@ -137,6 +149,8 @@ void free(void *p)
 			g->freed_mask = freed+self;
 		else if (a_cas(&g->freed_mask, freed, freed+self)!=freed)
 			continue;
+		fprintf(stderr, "--- Free complete. Current heap layout is: \n");
+		dump_heap(stderr);
 		return;
 	}
 
@@ -148,4 +162,6 @@ void free(void *p)
 		munmap(mi.base, mi.len);
 		errno = e;
 	}
+	fprintf(stderr, "--- Free complete. Current heap layout is: \n");
+	dump_heap(stderr);
 }

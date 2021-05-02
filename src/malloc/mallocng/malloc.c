@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <stdio.h>
 
 #include "meta.h"
 
@@ -298,6 +299,9 @@ static int alloc_slot(int sc, size_t req)
 
 void *malloc(size_t n)
 {
+	fprintf(stderr, "--- Malloc requested of size 0x%lx ---\n", n);
+	fprintf(stderr, "--- Current heap layout is: \n");
+	dump_heap(stderr);
 	if (size_overflows(n)) return 0;
 	struct meta *g;
 	uint32_t mask, first;
@@ -374,6 +378,9 @@ void *malloc(size_t n)
 	g = ctx.active[sc];
 
 success:
+	fprintf(stderr, "--- Allocation complete. ---\n");
+	fprintf(stderr, "--- Current heap layout is: \n");
+	dump_heap(stderr);
 	ctr = ctx.mmap_counter;
 	unlock();
 	return enframe(g, idx, n, ctr);

@@ -285,4 +285,5 @@ static inline int is_bouncing(int sc)
 	return (sc-7U < 32 && ctx.bounces[sc-7] >= 100);
 }
 
+void dump_heap(FILE *f);
 #endif
